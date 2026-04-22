@@ -3,7 +3,7 @@ import json
 import argparse
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Tuple
 import sys
 import AStar
 
@@ -50,6 +50,8 @@ class ParsedLayout:
     grid: np.ndarray           # 2-D int array  (0=free, 1=wall/obstacle)
     endpoint_coords: dict      # id → (row, col) in grid
 
+
+paths = list[np.array]
 
 def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
     with open(path) as f:
@@ -281,7 +283,7 @@ def visualize_matplotlib(layout: ParsedLayout):
 
 
     # Draw connections
-    # TODO: USE A* TO DETERMINE CONNECTION LINES
+    # TODO: LOCATE INTERSECTIONS 
 
     for i, ep in enumerate(layout.endpoints):
         if ep.connects_to is not None:
@@ -290,10 +292,11 @@ def visualize_matplotlib(layout: ParsedLayout):
             path = AStar.find_path(layout.grid, start, end)
             if path:
                 path = np.array(path)
+                paths.append(path)
                 plt.plot(path[:,1], path[:, 0])
         else:
             continue
-        
+
     rows, cols = layout.grid.shape
     ax.set_xlim(-0.5, cols - 0.5)
     ax.set_ylim(rows - 0.5, -0.5)
@@ -310,7 +313,7 @@ def visualize_matplotlib(layout: ParsedLayout):
     plt.savefig("layout_preview.png", dpi=150)
     print("  [info] Saved graphical preview to layout_preview.png")
     plt.show()
-
+s
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -340,7 +343,7 @@ def main():
     print(f"  Blocked    : {int((layout.grid == 1).sum())}")
     print(f"  Endpoints  : {len(layout.endpoint_coords)}\n")
 
-    return layout   # useful when imported as a module
+    return layout   
 
 
 if __name__ == "__main__":
