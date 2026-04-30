@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Tuple
 import sys
 import AStar
+import Intersections
 
 @dataclass
 class Room:
@@ -51,7 +52,7 @@ class ParsedLayout:
     endpoint_coords: dict      # id → (row, col) in grid
 
 
-paths = list[np.array]
+paths = []
 
 def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
     with open(path) as f:
@@ -282,8 +283,7 @@ def visualize_matplotlib(layout: ParsedLayout):
         ax.text(col + 0.5, row - 0.5, ep.id, fontsize=7, color=color, fontweight="bold")
 
 
-    # Draw connections
-    # TODO: LOCATE INTERSECTIONS 
+    # TODO: PLOT INTERSECTIONS BASED ON NUMBER OF CONNECTED NODES
 
     for i, ep in enumerate(layout.endpoints):
         if ep.connects_to is not None:
@@ -296,6 +296,13 @@ def visualize_matplotlib(layout: ParsedLayout):
                 plt.plot(path[:,1], path[:, 0])
         else:
             continue
+
+    intersections = Intersections.get_intersections(paths)
+   # print(intersections)
+    sorted_intersections = sorted(intersections, key=lambda x: x.num_cables)
+    for coord in sorted_intersections:
+        ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
+
 
     rows, cols = layout.grid.shape
     ax.set_xlim(-0.5, cols - 0.5)
@@ -313,7 +320,7 @@ def visualize_matplotlib(layout: ParsedLayout):
     plt.savefig("layout_preview.png", dpi=150)
     print("  [info] Saved graphical preview to layout_preview.png")
     plt.show()
-s
+
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
