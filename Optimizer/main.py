@@ -5,8 +5,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
 import sys
-import AStar
-import Intersections
+import AStar as AStar
+import Intersections as Intersections
 
 @dataclass
 class Room:
@@ -276,12 +276,13 @@ def visualize_matplotlib(layout: ParsedLayout):
 
     # Draw endpoints
     colors = plt.cm.tab10.colors
+    plotted_endpoints = []
     for i, ep in enumerate(layout.endpoints):
         row, col = layout.endpoint_coords[ep.id]
         color = colors[i % len(colors)]
+        plotted_endpoints.append((col, row))
         ax.plot(col, row, "o", color=color, markersize=10, zorder=5)
         ax.text(col + 0.5, row - 0.5, ep.id, fontsize=7, color=color, fontweight="bold")
-
 
     # TODO: PLOT INTERSECTIONS BASED ON NUMBER OF CONNECTED NODES
 
@@ -298,10 +299,10 @@ def visualize_matplotlib(layout: ParsedLayout):
             continue
 
     intersections = Intersections.get_intersections(paths)
-   # print(intersections)
     sorted_intersections = sorted(intersections, key=lambda x: x.num_cables)
     for coord in sorted_intersections:
-        ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
+        if (coord.x.item(), coord.y.item()) not in plotted_endpoints: # Make sure that endpoint is not considered an intersection
+            ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
 
 
     rows, cols = layout.grid.shape
