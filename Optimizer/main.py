@@ -325,18 +325,16 @@ def visualize_matplotlib(layout: ParsedLayout):
     plt.show()
 
 ESP32_IP = '192.168.4.1'
-PORT = '5005'
+PORT = 5005
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((ESP32_IP, PORT))
 
 def check_devices():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # Connect to the server's IP and port
-        s.connect((ESP32_IP, PORT))
-        s.sendall(b"Hello, world") # Send message as bytes
-        data = s.recv(1024)
-        if data is not (''):
-            print("CONNECTION FOUND")
-
+    print("Reading Network...")
+    data = sock.recv(1024).decode().strip()
+    #num_nodes = data.parseInt()
+    print(f'Received Data {data}')
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -353,12 +351,11 @@ def main():
 
     room, obstacles, endpoints = parse_json(args.layout_file)
     layout = build_grid(room, obstacles, endpoints, resolution=args.resolution)
-
-  
-    visualize_matplotlib(layout)
-
+    
+    
     while True:
         check_devices()
+        visualize_matplotlib(layout)
 
     if args.save_grid:
         np.save(args.save_grid, layout.grid)
@@ -368,8 +365,8 @@ def main():
     print(f"  Free cells : {int((layout.grid == 0).sum())}")
     print(f"  Blocked    : {int((layout.grid == 1).sum())}")
     print(f"  Endpoints  : {len(layout.endpoint_coords)}\n")
+    
 
-    return layout   
 
 
 if __name__ == "__main__":
