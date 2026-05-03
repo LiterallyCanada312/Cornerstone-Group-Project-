@@ -7,6 +7,8 @@ from typing import Optional, Tuple
 import sys
 import AStar as AStar
 import Intersections as Intersections
+import socket
+
 
 @dataclass
 class Room:
@@ -322,6 +324,19 @@ def visualize_matplotlib(layout: ParsedLayout):
     print("  [info] Saved graphical preview to layout_preview.png")
     plt.show()
 
+ESP32_IP = '192.168.4.1'
+PORT = '5005'
+
+
+def check_devices():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # Connect to the server's IP and port
+        s.connect((ESP32_IP, PORT))
+        s.sendall(b"Hello, world") # Send message as bytes
+        data = s.recv(1024)
+        if data is not (''):
+            print("CONNECTION FOUND")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -341,6 +356,9 @@ def main():
 
   
     visualize_matplotlib(layout)
+
+    while True:
+        check_devices()
 
     if args.save_grid:
         np.save(args.save_grid, layout.grid)
