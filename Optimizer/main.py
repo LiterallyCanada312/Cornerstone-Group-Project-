@@ -259,7 +259,7 @@ def build_grid(
         endpoint_coords=endpoint_coords,
     )
 
-def visualize_matplotlib(layout: ParsedLayout):
+def visualize_matplotlib(layout: ParsedLayout, nodes: int):
     try:
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -330,11 +330,12 @@ PORT = 5005
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((ESP32_IP, PORT))
 
-def check_devices():
+def check_devices() -> int:
     print("Reading Network...")
     data = sock.recv(1024).decode().strip()
     #num_nodes = data.parseInt()
     print(f'Received Data {data}')
+    return 0
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -354,8 +355,8 @@ def main():
     
     
     while True:
-        check_devices()
-        visualize_matplotlib(layout)
+        num_nodes = check_devices()
+        visualize_matplotlib(layout, num_nodes)
 
     if args.save_grid:
         np.save(args.save_grid, layout.grid)
