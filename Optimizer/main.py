@@ -302,9 +302,21 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
 
     intersections = Intersections.get_intersections(paths)
     sorted_intersections = sorted(intersections, key=lambda x: x.num_cables)
-    for coord in sorted_intersections:
-        if (coord.x.item(), coord.y.item()) not in plotted_endpoints: # Make sure that endpoint is not considered an intersection
-            ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
+    num_intersections = len(sorted_intersections)
+    if(nodes >= num_intersections):
+        for coord in sorted_intersections:
+            if (coord.x.item(), coord.y.item()) not in plotted_endpoints: # Make sure that endpoint is not considered an intersection
+                ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
+    else:
+        remaining_nodes = nodes
+        index = 0
+        while remaining_nodes > 0:
+            coord = sorted_intersections[index]
+            if (coord.x.item(), coord.y.item()) not in plotted_endpoints: # Make sure that endpoint is not considered an intersection
+                ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
+            index += 1
+            remaining_nodes -=1
+
 
 
     rows, cols = layout.grid.shape
@@ -335,7 +347,7 @@ def check_devices() -> int:
     data = sock.recv(1024).decode().strip()
     #num_nodes = data.parseInt()
     print(f'Received Data {data}')
-    return 0
+    return int(data)
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -358,14 +370,6 @@ def main():
         num_nodes = check_devices()
         visualize_matplotlib(layout, num_nodes)
 
-    if args.save_grid:
-        np.save(args.save_grid, layout.grid)
-        print(f"  [info] Grid saved to '{args.save_grid}'")
-
-    print(f"  Grid shape : {layout.grid.shape}  (rows × cols)")
-    print(f"  Free cells : {int((layout.grid == 0).sum())}")
-    print(f"  Blocked    : {int((layout.grid == 1).sum())}")
-    print(f"  Endpoints  : {len(layout.endpoint_coords)}\n")
     
 
 

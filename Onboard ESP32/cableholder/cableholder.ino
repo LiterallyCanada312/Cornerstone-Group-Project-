@@ -13,7 +13,8 @@ int node_count; // Only modifiable by host node
 WiFiServer* server = nullptr;
 WiFiClient hostConnection;
 WiFiClient clients[MAX_CONNECTIONS]; // Only used for host node
-
+bool isNode[MAX_CONNECTIONS];
+unsigned long lastHeartbeat[MAX_CONNECTIONS];
 
 bool networkExists(){
   delay(500);
@@ -53,8 +54,8 @@ void startAsClient(){
 
 void updateConnectionCount(){
   int count = 0;
-  for(auto client : clients){
-    if(client && client.connected()){
+  for(int i = 0; i < MAX_CONNECTIONS; i++){
+    if(clients[i] && clients[i].connected() && isNode[i]){
       count += 1;
     }
   }
@@ -62,13 +63,22 @@ void updateConnectionCount(){
 }
 
 void broadcastNodeCount(){
-  String msg = "NUM NODES: " + String(node_count) + "\n";
+  String msg = String(node_count) + "\n";
   for(auto client : clients){
     if(client && client.connected()){
       client.print(msg);
       Serial.println(msg);
     }
   }
+}
+
+void dropClient(int i) {
+  Serial.printf("Dropping client %d (%s)\n", i, isNode[i] ? "NODE" : "SCRIPT");
+  clients[i].stop();
+  isNode[i] = false;
+  lastHeartbeat[i] = 0;
+  updateConnectionCount();
+  broadcastNodeCount();
 }
 
 void broadcastMessage(String msg, int senderIndex) {
@@ -80,40 +90,52 @@ void broadcastMessage(String msg, int senderIndex) {
 }
 
 void loopHost(){
+  unsigned long now = millis();
   // Accept new connection if none active
   WiFiClient newClient = server->available();
   if(newClient){
-    for(int i = 0; i < 4; i++){
-      digitalWrite(CONNECTION_LED, HIGH);
-      delay(250);
-      digitalWrite(CONNECTION_LED, LOW);
-      delay(250);
-    }
     for(int i  = 0; i < MAX_CONNECTIONS; i++){
       if(!clients[i] || !clients[i].connected()){
         clients[i] = newClient;
         updateConnectionCount();
         broadcastNodeCount();
+        lastHeartbeat[i] = now;
+        isNode[i] = false;
         break;
       }
     }
   }
 
   for(int i = 0; i < MAX_CONNECTIONS; i++){
-    if(clients[i] && clients[i].connected() && clients[i].available()){
+    
+    if(!clients[i]) continue;
+
+    if (lastHeartbeat[i] > 0 && (now - lastHeartbeat[i]) > 10000) {
+      Serial.printf("Client %d timed out\n", i);
+      dropClient(i);
+      continue;
+    }
+
+    while(clients[i].available()){
       String msg = clients[i].readStringUntil('\n');
       msg.trim();
+      lastHeartbeat[i] = now;
 
-      if(msg != "NODE" && msg != "HEARTBEAT"){
-        broadcastMessage(msg, i);
+      if(msg == "NODE"){
+        isNode[i] = true;
+        updateConnectionCount();
+        broadcastNodeCount();
+      }else if (msg == "HEARTBEAT"){
+        continue;
+      }else{
+        isNode[i] = false;
       }
+
     }
 
-    if(clients[i] && !clients[i].connected()){
-      clients[i].stop();
-      updateConnectionCount();
-      broadcastNodeCount();
-    }
+  }
+
+    
 
     static unsigned long lastBroadcast = 0;
     if (millis() - lastBroadcast > 5000) {
@@ -124,19 +146,22 @@ void loopHost(){
 
   }
 
-}
+
 
 void loopClient() {
   // Reconnect if dropped
+  
   if (!hostConnection.connected()) {
     Serial.println("Lost connection to host, retrying...");
-    hostConnection.connect("192.168.4.1", port);
+    if (hostConnection.connect("192.168.4.1", port)) {
+      hostConnection.println("NODE");  // Re-identify on reconnect
+    }
     delay(1000);
     return;
   }
 
   static unsigned long lastSend = 0;
-  if (millis() - lastSend > 5000) {
+  if (millis() - lastSend > 3000) {
     hostConnection.println("HEARTBEAT");
     lastSend = millis();
   }
