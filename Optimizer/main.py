@@ -54,7 +54,7 @@ class ParsedLayout:
 
 
 def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
-    with open(path) as f:
+    with open("Rooms/"+path) as f:
         data = json.load(f)
 
     # --- Room ---
@@ -336,18 +336,18 @@ ESP32_IP = '192.168.4.1' # This is the default IP
 PORT = 5005 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((ESP32_IP, PORT))
+try:
+    sock.connect((ESP32_IP, PORT))
+except TimeoutError:
+    print("Device not connected to cable holder network, please restart.")
 
 def check_devices() -> int:
     print("Reading Network...")
-    try:
-        data = sock.recv(1024).decode().strip()
-        print(f'Received Data {data}')
-        return int(data)
-    except:
-        print("Device not connected to Cable Holder Network, trying again...")
+    data = sock.recv(1024).decode().strip()
     #num_nodes = data.parseInt()
-    
+    print(f'Received Data {data} Node(s) connected')
+    return int(data)
+
 #TODO: MAKE UI TO CUSTOMIZE ROOM LAYOUT
 
 def main():
@@ -370,8 +370,6 @@ def main():
     while True:
         num_nodes = check_devices()
         visualize_matplotlib(layout, num_nodes)
-
-
 
 if __name__ == "__main__":
     main()

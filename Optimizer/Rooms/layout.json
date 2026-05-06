@@ -1,0 +1,83 @@
+{
+  "room": {
+    "width": 50,
+    "height": 50
+  },
+  "obstacles": [
+    {
+      "type": "rect",
+      "label": "",
+      "x": 5.41,
+      "y": 10.78,
+      "width": 16.37,
+      "height": 29.87
+    },
+    {
+      "type": "rect",
+      "label": "",
+      "x": 34.66,
+      "y": 11.76,
+      "width": 12.25,
+      "height": 10.64
+    },
+    {
+      "type": "rect",
+      "label": "",
+      "x": 34.93,
+      "y": 26.25,
+      "width": 11.99,
+      "height": 11.9
+    },
+    {
+      "type": "rect",
+      "label": "",
+      "x": 18.65,
+      "y": 3.89,
+      "width": 23.26,
+      "height": 1.97
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "E1",
+      "x": 20.53,
+      "y": 2.55,
+      "connects_to": "E2",
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E2",
+      "x": 44.95,
+      "y": 11.05,
+      "connects_to": null,
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E3",
+      "x": 1.48,
+      "y": 12.03,
+      "connects_to": "E4",
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E4",
+      "x": 48.08,
+      "y": 27.5,
+      "connects_to": "E4",
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E5",
+      "x": 2.01,
+      "y": 39.04,
+      "connects_to": "E4",
+      "cable_type": "generic",
+      "group": ""
+    }
+  ],
+  "resolution": 1
+}
