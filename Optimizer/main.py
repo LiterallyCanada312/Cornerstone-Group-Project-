@@ -54,8 +54,6 @@ class ParsedLayout:
     endpoint_coords: dict      # id → (row, col) in grid
 
 
-paths = []
-
 def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
     with open(path) as f:
         data = json.load(f)
@@ -260,6 +258,7 @@ def build_grid(
     )
 
 def visualize_matplotlib(layout: ParsedLayout, nodes: int):
+    paths = []
     try:
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -286,7 +285,6 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
         ax.plot(col, row, "o", color=color, markersize=10, zorder=5)
         ax.text(col + 0.5, row - 0.5, ep.id, fontsize=7, color=color, fontweight="bold")
 
-    # TODO: PLOT INTERSECTIONS BASED ON NUMBER OF CONNECTED NODES
 
     for i, ep in enumerate(layout.endpoints):
         if ep.connects_to is not None:
@@ -317,8 +315,6 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
             index += 1
             remaining_nodes -=1
 
-
-
     rows, cols = layout.grid.shape
     ax.set_xlim(-0.5, cols - 0.5)
     ax.set_ylim(rows - 0.5, -0.5)
@@ -336,8 +332,8 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
     print("  [info] Saved graphical preview to layout_preview.png")
     plt.show()
 
-ESP32_IP = '192.168.4.1'
-PORT = 5005
+ESP32_IP = '192.168.4.1' # This is the default IP 
+PORT = 5005 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((ESP32_IP, PORT))
@@ -348,6 +344,8 @@ def check_devices() -> int:
     #num_nodes = data.parseInt()
     print(f'Received Data {data}')
     return int(data)
+
+#TODO: MAKE UI TO CUSTOMIZE ROOM LAYOUT
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -369,8 +367,6 @@ def main():
     while True:
         num_nodes = check_devices()
         visualize_matplotlib(layout, num_nodes)
-
-    
 
 
 
