@@ -9,7 +9,6 @@ import AStar as AStar
 import Intersections as Intersections
 import socket
 
-
 @dataclass
 class Room:
     width: float
@@ -259,6 +258,7 @@ def build_grid(
 
 def visualize_matplotlib(layout: ParsedLayout, nodes: int):
     paths = []
+    plotted_intersections = []
     try:
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
