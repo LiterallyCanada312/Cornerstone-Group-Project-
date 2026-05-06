@@ -1,7 +1,7 @@
 #include <WiFi.h>
 
 #define CONNECTION_LED 26
-#define HOST_LED 2
+#define HOST_LED 27
 const char* ssid     = "CableHolder Network";   // Network name
 const char* password = "ObamaHamburgerSussyBalls";        // Min 8 chars, or "" for open
 const int port = 5005;
