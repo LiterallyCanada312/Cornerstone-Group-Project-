@@ -494,7 +494,19 @@ function exportJSON() {
   const json = { room: { width: rW, height: rH }, obstacles, endpoints, resolution: res };
   const jsonStr = JSON.stringify(json, null, 2);
 
-  sendPrompt('Here is the exported JSON layout:\n```json\n' + jsonStr + '\n```\nCan you review it and confirm it looks correct for the cable routing system?');
+  if (typeof sendPrompt === 'function') {
+    sendPrompt('Here is the exported JSON layout:\n```json\n' + jsonStr + '\n```\nCan you review it and confirm it looks correct for the cable routing system?');
+  } else {
+    fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: jsonStr})
+      .then(r => {
+        if (r.ok) {
+          document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">Layout saved &mdash; you can close this tab.</div>';
+        } else {
+          alert('Save failed: server returned ' + r.status);
+        }
+      })
+      .catch(err => alert('Save failed: ' + err));
+  }
 }
 
 setTool('rect');
