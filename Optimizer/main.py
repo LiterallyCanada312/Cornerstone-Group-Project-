@@ -340,11 +340,14 @@ sock.connect((ESP32_IP, PORT))
 
 def check_devices() -> int:
     print("Reading Network...")
-    data = sock.recv(1024).decode().strip()
+    try:
+        data = sock.recv(1024).decode().strip()
+        print(f'Received Data {data}')
+        return int(data)
+    except:
+        print("Device not connected to Cable Holder Network, trying again...")
     #num_nodes = data.parseInt()
-    print(f'Received Data {data}')
-    return int(data)
-
+    
 #TODO: MAKE UI TO CUSTOMIZE ROOM LAYOUT
 
 def main():
