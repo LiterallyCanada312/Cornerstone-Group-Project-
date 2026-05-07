@@ -2,6 +2,9 @@ from typing import List, Tuple, Dict, Set
 import numpy as np
 import heapq
 from math import sqrt
+
+PENALTY_WEIGHT = 7
+
 def create_node(position: Tuple[int, int], g: float = float('inf'), 
                 h: float = 0.0, parent: Dict = None) -> Dict:
 
@@ -33,7 +36,7 @@ def get_valid_neighbors(grid: np.ndarray, position: Tuple[int, int]) -> List[Tup
     return [
         (nx, ny) for nx, ny in possible_moves
         if 0 <= nx < rows and 0 <= ny < cols  # Within grid bounds
-        and grid[nx, ny] == 0                # Not an obstacle
+        and grid[nx, ny] != 1                # Not an obstacle
     ]
 def reconstruct_path(goal_node: Dict) -> List[Tuple[int, int]]:
 
@@ -79,7 +82,8 @@ def find_path(grid: np.ndarray, start: Tuple[int, int],
                 
             # Calculate new path cost
             tentative_g = current_node['g'] + calculate_heuristic(current_pos, neighbor_pos)
-            
+            if grid[neighbor_pos[0]][neighbor_pos[1]] == 2:
+                tentative_g += PENALTY_WEIGHT
             # Create or update neighbor
             if neighbor_pos not in open_dict:
                 neighbor = create_node(

@@ -47,13 +47,41 @@ class Endpoint:
 class ParsedLayout:
     room: Room
     obstacles: list[Obstacle]
+    penalty_zones: list[Obstacle]
     endpoints: list[Endpoint]
     resolution: float          # world units per grid cell
-    grid: np.ndarray           # 2-D int array  (0=free, 1=wall/obstacle)
+    grid: np.ndarray           # 2-D int array  (0=free, 1=wall/obstacle, 2=penalty zone)
     endpoint_coords: dict      # id → (row, col) in grid
 
 
-def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
+def _parse_shape(raw: dict) -> Optional[Obstacle]:
+    shape = raw.get("type", "rect")
+    obs = Obstacle(shape=shape, label=raw.get("label", ""))
+
+    if shape == "rect":
+        obs.x      = float(raw["x"])
+        obs.y      = float(raw["y"])
+        obs.width  = float(raw["width"])
+        obs.height = float(raw["height"])
+
+    elif shape == "circle":
+        obs.cx     = float(raw["cx"])
+        obs.cy     = float(raw["cy"])
+        obs.radius = float(raw["radius"])
+
+    elif shape in ("polygon", "line"):
+        obs.points = [[float(p[0]), float(p[1])] for p in raw["points"]]
+        if shape == "line":
+            obs.thickness = float(raw.get("thickness", 0.5))
+
+    else:
+        print(f"  [warn] Unknown shape type '{shape}' — skipped.")
+        return None
+
+    return obs
+
+
+def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Obstacle], list[Endpoint]]:
     with open("Rooms/"+path) as f:
         data = json.load(f)
 
@@ -64,30 +92,16 @@ def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
     # --- Obstacles ---
     obstacles = []
     for raw in data.get("obstacles", []):
-        shape = raw.get("type", "rect")
-        obs = Obstacle(shape=shape, label=raw.get("label", ""))
+        obs = _parse_shape(raw)
+        if obs is not None:
+            obstacles.append(obs)
 
-        if shape == "rect":
-            obs.x      = float(raw["x"])
-            obs.y      = float(raw["y"])
-            obs.width  = float(raw["width"])
-            obs.height = float(raw["height"])
-
-        elif shape == "circle":
-            obs.cx     = float(raw["cx"])
-            obs.cy     = float(raw["cy"])
-            obs.radius = float(raw["radius"])
-
-        elif shape in ("polygon", "line"):
-            obs.points = [[float(p[0]), float(p[1])] for p in raw["points"]]
-            if shape == "line":
-                obs.thickness = float(raw.get("thickness", 0.5))
-
-        else:
-            print(f"  [warn] Unknown obstacle type '{shape}' — skipped.")
-            continue
-
-        obstacles.append(obs)
+    # --- Penalty zones ---
+    penalty_zones = []
+    for raw in data.get("penalty_zones", []):
+        zone = _parse_shape(raw)
+        if zone is not None:
+            penalty_zones.append(zone)
 
     endpoints = []
     for raw in data.get("endpoints", []):
@@ -101,7 +115,7 @@ def parse_json(path: str) -> tuple[Room, list[Obstacle], list[Endpoint]]:
         )
         endpoints.append(ep)
 
-    return room, obstacles, endpoints
+    return room, obstacles, penalty_zones, endpoints
 
 def _world_to_cell(x: float, y: float, resolution: float) -> tuple[int, int]:
     """Convert world coordinates to (row, col) grid indices."""
@@ -110,16 +124,16 @@ def _world_to_cell(x: float, y: float, resolution: float) -> tuple[int, int]:
     return row, col
 
 
-def _rasterize_rect(grid: np.ndarray, obs: Obstacle, res: float):
+def _rasterize_rect(grid: np.ndarray, obs: Obstacle, res: float, value: int = 1):
     rows, cols = grid.shape
     c0 = max(0, int(obs.x / res))
     c1 = min(cols, int((obs.x + obs.width) / res) + 1)
     r0 = max(0, int(obs.y / res))
     r1 = min(rows, int((obs.y + obs.height) / res) + 1)
-    grid[r0:r1, c0:c1] = 1
+    grid[r0:r1, c0:c1] = value
 
 
-def _rasterize_circle(grid: np.ndarray, obs: Obstacle, res: float):
+def _rasterize_circle(grid: np.ndarray, obs: Obstacle, res: float, value: int = 1):
     rows, cols = grid.shape
     r_cells = obs.radius / res
     cr = obs.cy / res
@@ -136,10 +150,10 @@ def _rasterize_circle(grid: np.ndarray, obs: Obstacle, res: float):
             cy_w = (row + 0.5) * res
             cx_w = (col + 0.5) * res
             if (cx_w - obs.cx) ** 2 + (cy_w - obs.cy) ** 2 <= obs.radius ** 2:
-                grid[row, col] = 1
+                grid[row, col] = value
 
 
-def _rasterize_polygon(grid: np.ndarray, obs: Obstacle, res: float):
+def _rasterize_polygon(grid: np.ndarray, obs: Obstacle, res: float, value: int = 1):
     rows, cols = grid.shape
     pts = obs.points
     if len(pts) < 3:
@@ -166,10 +180,10 @@ def _rasterize_polygon(grid: np.ndarray, obs: Obstacle, res: float):
         for i in range(0, len(x_ints) - 1, 2):
             c0 = max(0, int(x_ints[i]))
             c1 = min(cols - 1, int(x_ints[i + 1]) + 1)
-            grid[row, c0:c1] = 1
+            grid[row, c0:c1] = value
 
 
-def _rasterize_line(grid: np.ndarray, obs: Obstacle, res: float):
+def _rasterize_line(grid: np.ndarray, obs: Obstacle, res: float, value: int = 1):
     half = obs.thickness / 2
     pts = obs.points
     for i in range(len(pts) - 1):
@@ -195,11 +209,12 @@ def _rasterize_line(grid: np.ndarray, obs: Obstacle, res: float):
                     t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / seg_len_sq))
                     dist = ((px - (x1 + t * dx)) ** 2 + (py - (y1 + t * dy)) ** 2) ** 0.5
                 if dist <= half:
-                    grid[row, col] = 1
+                    grid[row, col] = value
 
 def build_grid(
     room: Room,
     obstacles: list[Obstacle],
+    penalty_zones: list[Obstacle],
     endpoints: list[Endpoint],
     resolution: float = 1.0,
 ) -> ParsedLayout:
@@ -208,17 +223,25 @@ def build_grid(
     grid_rows = int(np.ceil(room.height / resolution))
     grid = np.zeros((grid_rows, grid_cols), dtype=np.int8)
 
-    # --- Rasterize obstacles ---
     rasterizers = {
         "rect":    _rasterize_rect,
         "circle":  _rasterize_circle,
         "polygon": _rasterize_polygon,
         "line":    _rasterize_line,
     }
+
+    # Rasterize penalty zones first (value 2) so that obstacles, rasterized
+    # next with value 1, naturally overwrite any cells where the two overlap.
+    for zone in penalty_zones:
+        fn = rasterizers.get(zone.shape)
+        if fn:
+            fn(grid, zone, resolution, value=2)
+        print(f"  [penalty]  {zone.shape:8s}  label='{zone.label}'")
+
     for obs in obstacles:
         fn = rasterizers.get(obs.shape)
         if fn:
-            fn(grid, obs, resolution)
+            fn(grid, obs, resolution, value=1)
         print(f"  [obstacle] {obs.shape:8s}  label='{obs.label}'")
 
     # --- Map endpoints to grid cells ---
@@ -250,6 +273,7 @@ def build_grid(
     return ParsedLayout(
         room=room,
         obstacles=obstacles,
+        penalty_zones=penalty_zones,
         endpoints=endpoints,
         resolution=resolution,
         grid=grid,
@@ -273,6 +297,7 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
     display = np.zeros((*layout.grid.shape, 3))
     display[layout.grid == 0] = [0.97, 0.97, 0.97]   # free: light grey
     display[layout.grid == 1] = [0.18, 0.18, 0.22]   # obstacle: near-black
+    display[layout.grid == 2] = [1.00, 0.85, 0.40]   # penalty zone: amber
     ax.imshow(display, origin="upper", interpolation="nearest")
 
     # Draw endpoints
@@ -324,6 +349,7 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
     patches = [
         mpatches.Patch(color=[0.97, 0.97, 0.97], label="Free space"),
         mpatches.Patch(color=[0.18, 0.18, 0.22], label="Obstacle"),
+        mpatches.Patch(color=[1.00, 0.85, 0.40], label="Penalty zone"),
         mpatches.Patch(color="steelblue", label="Endpoint"),
     ]
     ax.legend(handles=patches, loc="upper right", fontsize=8)
@@ -363,8 +389,8 @@ def main():
 
     print(f"\nParsing '{args.layout_file}'  (resolution={args.resolution})\n")
 
-    room, obstacles, endpoints = parse_json(args.layout_file)
-    layout = build_grid(room, obstacles, endpoints, resolution=args.resolution)
+    room, obstacles, penalty_zones, endpoints = parse_json(args.layout_file)
+    layout = build_grid(room, obstacles, penalty_zones, endpoints, resolution=args.resolution)
     
     
     while True:
