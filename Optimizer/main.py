@@ -311,26 +311,26 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
         ax.text(col + 0.5, row - 0.5, ep.id, fontsize=7, color=color, fontweight="bold")
 
 
-    for i, ep in enumerate(layout.endpoints):
+    for i, ep in enumerate(layout.endpoints): # Locate start and endpoints indicated by user in JSON
         if ep.connects_to is not None:
             end = layout.endpoint_coords[ep.connects_to]
             start = layout.endpoint_coords[ep.id]
-            path = AStar.find_path(layout.grid, start, end)
+            path = AStar.find_path(layout.grid, start, end) # Use start and endpoints as input for pathfinding function
             if path:
                 path = np.array(path)
                 paths.append(path)
-                plt.plot(path[:,1], path[:, 0])
+                plt.plot(path[:,1], path[:, 0]) # If a path exists, plot it
         else:
             continue
 
-    intersections = Intersections.get_intersections(paths)
-    sorted_intersections = sorted(intersections, key=lambda x: x.num_cables)
+    intersections = Intersections.get_intersections(paths) # Locate intersections 
+    sorted_intersections = sorted(intersections, key=lambda x: x.num_cables) # Prioritize intersections based on number of cables running through them
     num_intersections = len(sorted_intersections)
-    if(nodes >= num_intersections):
+    if(nodes >= num_intersections): # If number of nodes is greater than number of intersections:
         for coord in sorted_intersections:
             if (coord.x.item(), coord.y.item()) not in plotted_endpoints: # Make sure that endpoint is not considered an intersection
                 ax.plot(coord.x, coord.y, "o", color='gray', markersize=10, zorder=5)
-    else:
+    else: # Otherwise, use nodes on as many intersections as possible
         remaining_nodes = nodes
         index = 0
         while remaining_nodes > 0:
@@ -374,7 +374,6 @@ def check_devices() -> int:
     print(f'Received Data {data} Node(s) connected')
     return int(data)
 
-#TODO: MAKE UI TO CUSTOMIZE ROOM LAYOUT
 
 def main():
     parser = argparse.ArgumentParser(description="Parse a JSON room layout into a numpy grid.")
@@ -396,6 +395,7 @@ def main():
     while True:
         num_nodes = check_devices()
         visualize_matplotlib(layout, num_nodes)
+        # visualize_matplotlib(layout, 2)
 
 if __name__ == "__main__":
     main()

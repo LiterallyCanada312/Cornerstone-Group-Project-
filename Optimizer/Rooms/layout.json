@@ -6,44 +6,68 @@
   "obstacles": [
     {
       "type": "rect",
-      "label": "",
-      "x": 4.26,
-      "y": 31.88,
-      "width": 11.02,
-      "height": 4.72
+      "label": "E2",
+      "x": 3.61,
+      "y": 5.97,
+      "width": 12.38,
+      "height": 24.9
     },
     {
       "type": "rect",
-      "label": "",
-      "x": 23.58,
-      "y": 31.88,
-      "width": 12.16,
-      "height": 4.65
+      "label": "E2",
+      "x": 25.87,
+      "y": 6.19,
+      "width": 11.95,
+      "height": 7.58
+    },
+    {
+      "type": "rect",
+      "label": "E2",
+      "x": 26.15,
+      "y": 16.49,
+      "width": 11.45,
+      "height": 14.45
     }
   ],
   "penalty_zones": [
     {
       "type": "rect",
-      "label": "",
-      "x": 6.26,
-      "y": 7.76,
-      "width": 28.34,
-      "height": 22.9
+      "label": "E2",
+      "x": 16.49,
+      "y": 5.97,
+      "width": 9.16,
+      "height": 25.04
     }
   ],
   "endpoints": [
     {
       "id": "E1",
-      "x": 7.48,
-      "y": 38.18,
+      "x": 7.84,
+      "y": 35.31,
       "connects_to": "E2",
       "cable_type": "generic",
       "group": ""
     },
     {
       "id": "E2",
-      "x": 8.77,
-      "y": 3.04,
+      "x": 30.3,
+      "y": 3.54,
+      "connects_to": null,
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E3",
+      "x": 30.73,
+      "y": 34.96,
+      "connects_to": "E4",
+      "cable_type": "generic",
+      "group": ""
+    },
+    {
+      "id": "E4",
+      "x": 8.19,
+      "y": 3.18,
       "connects_to": null,
       "cable_type": "generic",
       "group": ""
