@@ -313,13 +313,16 @@ def visualize_matplotlib(layout: ParsedLayout, nodes: int):
 
     for i, ep in enumerate(layout.endpoints): # Locate start and endpoints indicated by user in JSON
         if ep.connects_to is not None:
-            end = layout.endpoint_coords[ep.connects_to]
-            start = layout.endpoint_coords[ep.id]
-            path = AStar.find_path(layout.grid, start, end) # Use start and endpoints as input for pathfinding function
-            if path:
-                path = np.array(path)
-                paths.append(path)
-                plt.plot(path[:,1], path[:, 0]) # If a path exists, plot it
+            try:
+                end = layout.endpoint_coords[ep.connects_to]
+                start = layout.endpoint_coords[ep.id]
+                path = AStar.find_path(layout.grid, start, end) # Use start and endpoints as input for pathfinding function
+                if path:
+                    path = np.array(path)
+                    paths.append(path)
+                    plt.plot(path[:,1], path[:, 0]) # If a path exists, plot it
+            except KeyError:
+                print("Designated Endpoint does not exist, Skipping...")
         else:
             continue
 
